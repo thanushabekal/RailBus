@@ -1,0 +1,475 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>RailBus</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Barlow:wght@400;500;600&family=IBM+Plex+Mono:wght@500;600&display=swap">
+<style>
+/* Layout: navy station-board header with role tabs, then one working screen per role.
+   Palette: platform-sign navy, signal amber, cool paper greys, three status colors. */
+:root{
+  --font-display:'Barlow Condensed','Arial Narrow',sans-serif;
+  --font-body:'Barlow',system-ui,sans-serif;
+  --font-mono:'IBM Plex Mono',ui-monospace,monospace;
+  --bg:#EDF0F4; --surface:#FFFFFF; --ink:#14213D; --muted:#5A6479; --line:#D3D9E3;
+  --navy:#14213D; --on-navy:#F4F6FB; --amber:#F5B700; --on-amber:#14213D;
+  --ok:#17784A; --ok-bg:#DDF2E7; --warn:#8A5A00; --warn-bg:#FCEFC9; --bad:#A92A22; --bad-bg:#F9DEDB;
+  --track:#E1E6EE; --sel:#FFF8E1;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0D1324; --surface:#151D35; --ink:#E7EBF5; --muted:#9AA5C0; --line:#28335A;
+  --navy:#0A1020; --on-navy:#F4F6FB; --amber:#F5B700; --on-amber:#14213D;
+  --ok:#5FD39A; --ok-bg:#12382A; --warn:#F2C45A; --warn-bg:#3A2D0B; --bad:#FF8B82; --bad-bg:#3F1815;
+  --track:#26305A; --sel:#272612; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0D1324; --surface:#151D35; --ink:#E7EBF5; --muted:#9AA5C0; --line:#28335A;
+  --navy:#0A1020; --on-navy:#F4F6FB; --amber:#F5B700; --on-amber:#14213D;
+  --ok:#5FD39A; --ok-bg:#12382A; --warn:#F2C45A; --warn-bg:#3A2D0B; --bad:#FF8B82; --bad-bg:#3F1815;
+  --track:#26305A; --sel:#272612; color-scheme:dark}
+
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--font-body);font-size:15px;line-height:1.45}
+button,input,select{font:inherit;color:inherit}
+.wrap{max-width:980px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+header{background:var(--navy);color:var(--on-navy)}
+.head{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:12px 24px;padding-block:18px 0}
+.brand h1{margin:0;font-family:var(--font-display);font-weight:700;font-size:2.1rem;letter-spacing:.04em;text-transform:uppercase;line-height:1}
+.brand h1 span{color:var(--amber)}
+.brand p{margin:4px 0 0;font-size:.85rem;opacity:.8}
+nav{display:flex;gap:2px}
+nav button{background:transparent;border:0;border-bottom:4px solid transparent;color:var(--on-navy);opacity:.75;padding:10px 16px 8px;font-family:var(--font-display);font-weight:600;font-size:1.15rem;letter-spacing:.06em;text-transform:uppercase;cursor:pointer}
+nav button:hover{opacity:1}
+nav button[aria-current="page"]{opacity:1;border-bottom-color:var(--amber)}
+button:focus-visible,input:focus-visible,select:focus-visible{outline:3px solid var(--amber);outline-offset:2px}
+main{padding-block:22px 48px}
+h2{margin:0 0 4px;font-family:var(--font-display);font-weight:700;font-size:1.5rem;letter-spacing:.03em;text-transform:uppercase}
+.sub{margin:0 0 14px;color:var(--muted);font-size:.9rem}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:18px}
+.grid{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,1fr);gap:20px;align-items:start}
+.stack{display:flex;flex-direction:column;gap:20px;min-width:0}
+@media (max-width:760px){.grid{grid-template-columns:minmax(0,1fr)}}
+label{display:block;font-size:.8rem;font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:var(--muted);margin-bottom:5px}
+input,select{width:100%;background:var(--bg);border:1px solid var(--line);border-radius:4px;padding:10px 12px}
+.row{display:flex;flex-wrap:wrap;gap:12px}
+.row>*{flex:1 1 180px;min-width:0}
+.btn{background:var(--amber);color:var(--on-amber);border:0;border-radius:4px;padding:11px 18px;font-weight:600;cursor:pointer}
+.btn:hover{filter:brightness(.95)}
+.btn:disabled{opacity:.45;cursor:not-allowed;filter:none}
+.btn.ghost{background:transparent;color:var(--ink);border:1px solid var(--line)}
+.btn.small{padding:6px 10px;font-size:.82rem}
+.link{background:none;border:0;padding:0;color:var(--muted);text-decoration:underline;cursor:pointer;font-size:.85rem}
+.pill{display:inline-block;padding:2px 9px;border-radius:99px;font-size:.75rem;font-weight:600;letter-spacing:.03em;white-space:nowrap}
+.pill.open{background:var(--warn-bg);color:var(--warn)}
+.pill.ok{background:var(--ok-bg);color:var(--ok)}
+.pill.bad{background:var(--bad-bg);color:var(--bad)}
+.pill.used{background:var(--track);color:var(--muted)}
+
+.routes{display:flex;flex-direction:column;gap:8px;margin:0 0 16px;padding:0;list-style:none}
+.route{width:100%;text-align:left;background:var(--surface);border:1px solid var(--line);border-radius:5px;padding:12px 14px;cursor:pointer;display:block}
+.route[aria-pressed="true"]{border-color:var(--amber);background:var(--sel);box-shadow:inset 4px 0 0 var(--amber)}
+.route.dead{opacity:.6}
+.rtop{display:flex;justify-content:space-between;align-items:baseline;gap:10px}
+.rname{font-family:var(--font-display);font-weight:700;font-size:1.25rem;letter-spacing:.02em}
+.fare{font-family:var(--font-mono);font-weight:600}
+.bar{height:8px;background:var(--track);border-radius:4px;margin:9px 0 6px;overflow:hidden}
+.bar i{display:block;height:100%;background:var(--amber);border-radius:4px}
+.bar i.full{background:var(--ok)}
+.bar i.cut{background:var(--bad)}
+.rmeta{display:flex;justify-content:space-between;gap:10px;font-size:.82rem;color:var(--muted);flex-wrap:wrap}
+.summary{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin-top:14px}
+.note{font-size:.8rem;color:var(--muted);margin:10px 0 0}
+
+.tickets{display:flex;flex-direction:column;gap:14px;list-style:none;margin:0;padding:0}
+.ticket{background:var(--surface);border:1px solid var(--line);border-radius:6px;display:grid;grid-template-columns:minmax(0,1fr) auto;position:relative;overflow:hidden}
+.ticket .main{padding:14px 16px;min-width:0}
+.ticket .stub{padding:14px 14px;border-left:2px dashed var(--line);display:flex;flex-direction:column;justify-content:center;align-items:center;gap:6px;min-width:112px}
+.ticket .stub::before,.ticket .stub::after{content:"";position:absolute;right:99px;width:16px;height:16px;border-radius:50%;background:var(--bg);border:1px solid var(--line)}
+.ticket .stub::before{top:-9px}.ticket .stub::after{bottom:-9px}
+.tdest{font-family:var(--font-display);font-weight:700;font-size:1.3rem;text-transform:uppercase;letter-spacing:.03em}
+.tmeta{font-size:.82rem;color:var(--muted)}
+.code{font-family:var(--font-mono);font-weight:600;font-size:1.05rem;letter-spacing:.08em;user-select:all}
+.ticket.dim .code{text-decoration:line-through;opacity:.55}
+.inbox{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:10px}
+.inbox li{border-left:4px solid var(--amber);padding:2px 0 2px 12px;font-size:.9rem}
+.inbox time{display:block;font-size:.75rem;color:var(--muted)}
+.empty{color:var(--muted);font-size:.9rem;border:1px dashed var(--line);border-radius:6px;padding:16px;text-align:center}
+
+.scan{display:flex;gap:10px;flex-wrap:wrap}
+.scan input{flex:1 1 220px;font-family:var(--font-mono);font-size:1.4rem;letter-spacing:.1em;text-transform:uppercase;padding:12px 14px}
+.result{margin-top:16px;border-radius:6px;padding:18px 20px;border:2px solid var(--line)}
+.result h3{margin:0;font-family:var(--font-display);font-weight:700;font-size:2.2rem;letter-spacing:.04em;text-transform:uppercase;line-height:1.1}
+.result p{margin:6px 0 0}
+.result.ok{background:var(--ok-bg);border-color:var(--ok);color:var(--ok)}
+.result.warn{background:var(--warn-bg);border-color:var(--warn);color:var(--warn)}
+.result.bad{background:var(--bad-bg);border-color:var(--bad);color:var(--bad)}
+.hint{margin-top:14px;font-size:.85rem;color:var(--muted)}
+.hint code{font-family:var(--font-mono);background:var(--track);padding:1px 6px;border-radius:3px;margin-right:4px}
+
+.tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px;margin-bottom:18px}
+.tile{background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:12px 14px}
+.tile b{display:block;font-family:var(--font-mono);font-size:1.5rem;font-weight:600}
+.tile span{font-size:.78rem;font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:var(--muted)}
+.tablewrap{overflow-x:auto;background:var(--surface);border:1px solid var(--line);border-radius:6px}
+table{width:100%;border-collapse:collapse;min-width:640px}
+th,td{padding:11px 14px;text-align:left;border-bottom:1px solid var(--line);vertical-align:middle}
+th{font-size:.75rem;letter-spacing:.05em;text-transform:uppercase;color:var(--muted);font-weight:600}
+tr:last-child td{border-bottom:0}
+td.num{font-family:var(--font-mono);font-variant-numeric:tabular-nums}
+td .bar{width:110px;margin:0 0 4px}
+.tools{display:flex;gap:10px;flex-wrap:wrap;margin-top:16px;align-items:center}
+
+#toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--navy);color:var(--on-navy);padding:10px 18px;border-radius:5px;font-size:.9rem;opacity:0;pointer-events:none;transition:opacity .2s;max-width:calc(100% - 32px);z-index:20}
+#toast.show{opacity:1}
+@media (prefers-reduced-motion:reduce){#toast{transition:none}}
+[hidden]{display:none!important}
+</style>
+
+<header>
+  <div class="wrap">
+    <div class="head">
+      <div class="brand">
+        <h1>Rail<span>Bus</span></h1>
+        <p>Mysuru Junction to KSRTC city buses. A bus runs once 20 tickets are sold.</p>
+      </div>
+      <nav aria-label="Choose a role">
+        <button data-view="passenger">Passenger</button>
+        <button data-view="conductor">Conductor</button>
+        <button data-view="admin">Admin</button>
+      </nav>
+    </div>
+  </div>
+</header>
+
+<main class="wrap">
+
+  <!-- PASSENGER -->
+  <section id="v-passenger" hidden>
+    <div id="register" class="card" style="max-width:520px" hidden>
+      <h2>Create your account</h2>
+      <p class="sub">Register once, then book a seat while you are still on the train.</p>
+      <form id="regform" autocomplete="off">
+        <div class="row">
+          <div><label for="rname">Name</label><input id="rname" required maxlength="40" placeholder="Anita Rao"></div>
+          <div><label for="rphone">Mobile number</label><input id="rphone" required inputmode="numeric" pattern="[0-9]{10}" maxlength="10" placeholder="9876543210"></div>
+        </div>
+        <p class="note">Use a 10-digit number. Your confirmation message appears in this app.</p>
+        <p style="margin:14px 0 0"><button class="btn" type="submit">Register</button></p>
+      </form>
+    </div>
+
+    <div id="booking" hidden>
+      <div class="grid">
+        <div class="stack">
+          <div>
+            <h2>Book a seat</h2>
+            <p class="sub">Hello <b id="who"></b>. <button class="link" id="signout">Not you?</button></p>
+          </div>
+          <div class="card">
+            <label for="train">Your train</label>
+            <select id="train"></select>
+            <p class="note">Sample timetable for the demo. Arrival times are not live.</p>
+            <h2 style="margin-top:18px;font-size:1.2rem">Where are you going?</h2>
+            <p class="sub">Same fare for everyone on a route.</p>
+            <ul class="routes" id="routes"></ul>
+            <div class="summary">
+              <div id="choice" class="tmeta">Pick a route to continue.</div>
+              <button class="btn" id="pay" disabled>Pay</button>
+            </div>
+            <p class="note">Payment is simulated in this prototype. If a route has fewer than 20 tickets at cutoff, every ticket on it is refunded.</p>
+          </div>
+        </div>
+        <div class="stack">
+          <div>
+            <h2>My tickets</h2>
+            <p class="sub">Show the code to the conductor when you board.</p>
+            <ul class="tickets" id="tickets"></ul>
+          </div>
+          <div>
+            <h2>Messages</h2>
+            <ul class="inbox" id="inbox"></ul>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- CONDUCTOR -->
+  <section id="v-conductor" hidden>
+    <div style="max-width:620px">
+      <h2>Boarding check</h2>
+      <p class="sub">Enter the passenger's code. A code works once, and only on a confirmed bus.</p>
+      <form class="scan" id="scanform" autocomplete="off">
+        <label for="codein" class="sr" style="position:absolute;left:-9999px">Ticket code</label>
+        <input id="codein" placeholder="RB-XXXXX" maxlength="10" spellcheck="false">
+        <button class="btn" type="submit">Check</button>
+      </form>
+      <div id="result" aria-live="polite"></div>
+      <div class="hint" id="hint"></div>
+      <h2 style="margin-top:28px;font-size:1.2rem">Buses ready to board</h2>
+      <div id="manifest" class="tablewrap"></div>
+    </div>
+  </section>
+
+  <!-- ADMIN -->
+  <section id="v-admin" hidden>
+    <h2>KSRTC dashboard</h2>
+    <p class="sub">Demand for each route from Mysuru Junction. A bus is confirmed at 20 tickets and holds 50 passengers.</p>
+    <div class="tiles" id="tiles"></div>
+    <div class="tablewrap"><table>
+      <thead><tr><th>Route</th><th>Fare</th><th>Tickets</th><th>Status</th><th>Revenue</th><th>Demo</th></tr></thead>
+      <tbody id="adminrows"></tbody>
+    </table></div>
+    <div class="tools">
+      <button class="btn" id="cutoff">Run booking cutoff now</button>
+      <button class="btn ghost" id="reset">Reset demo data</button>
+    </div>
+    <p class="note">The cutoff cancels every route still under 20 tickets, refunds its tickets and sends each passenger a message. Add demo bookings to push a route past 20 and watch the bus confirm.</p>
+  </section>
+</main>
+<div id="toast" role="status"></div>
+
+<script>
+const MIN=20, CAP=50, KEY='railbus-v1';
+const ROUTES=[
+  {id:'chamundi',name:'Chamundi Hill',fare:30},
+  {id:'srirangapatna',name:'Srirangapatna',fare:45},
+  {id:'nanjangud',name:'Nanjangud',fare:40},
+  {id:'krs',name:'KRS Dam',fare:50},
+  {id:'hunsur',name:'Hunsur',fare:60}
+];
+const TRAINS=[
+  {no:'16022',name:'Kaveri Express',arr:'05:55'},
+  {no:'12614',name:'Tipu Express',arr:'11:10'},
+  {no:'12008',name:'Shatabdi Express',arr:'12:20'},
+  {no:'16206',name:'Talguppa Express',arr:'16:40'}
+];
+const NAMES=['Meera','Arjun','Kavya','Rohan','Divya','Suresh','Latha','Imran','Pooja','Naveen','Farah','Girish','Sneha','Vikram','Anand','Rekha','Harish','Zoya','Madhu','Tara'];
+const ALPHA='ABCDEFGHJKMNPQRSTUVWXYZ23456789';
+let S, sel=null, view='passenger';
+
+const $=id=>document.getElementById(id);
+const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const route=id=>ROUTES.find(r=>r.id===id);
+const train=no=>TRAINS.find(t=>t.no===no);
+const rupee=n=>'₹'+n.toLocaleString('en-IN');
+
+function newCode(){
+  let c;
+  do{ c='RB-'+Array.from({length:5},()=>ALPHA[Math.floor(Math.random()*ALPHA.length)]).join(''); }
+  while(S && S.tickets.some(t=>t.code===c));
+  return c;
+}
+function seed(){
+  S={user:null,tickets:[],trips:{},msgs:[]};
+  ROUTES.forEach(r=>S.trips[r.id]='OPEN');
+  const fill={chamundi:3,srirangapatna:6,nanjangud:19,krs:20,hunsur:14};
+  Object.entries(fill).forEach(([rid,n])=>{
+    for(let i=0;i<n;i++) S.tickets.push({code:newCode(),name:NAMES[(i*7+rid.length)%NAMES.length],phone:'',routeId:rid,train:TRAINS[i%TRAINS.length].no,status:'BOOKED'});
+  });
+  S.trips.krs='CONFIRMED';
+  return S;
+}
+function load(){
+  try{const raw=localStorage.getItem(KEY); if(raw){S=JSON.parse(raw); return;}}catch(e){}
+  seed();
+}
+function save(){ try{localStorage.setItem(KEY,JSON.stringify(S));}catch(e){} }
+
+const count=rid=>S.tickets.filter(t=>t.routeId===rid && t.status!=='REFUNDED').length;
+function say(phone,text){ if(phone) S.msgs.push({phone,text,at:Date.now()}); }
+function notifyRoute(rid,text){
+  const phones=new Set(S.tickets.filter(t=>t.routeId===rid&&t.phone).map(t=>t.phone));
+  phones.forEach(p=>say(p,text));
+}
+function confirmIfReady(rid){
+  if(S.trips[rid]==='OPEN' && count(rid)>=MIN){
+    S.trips[rid]='CONFIRMED';
+    notifyRoute(rid,`Your bus to ${route(rid).name} is confirmed. Be at the railway station bus bay with your code.`);
+    return true;
+  }
+  return false;
+}
+function book(rid,trainNo){
+  const t={code:newCode(),name:S.user.name,phone:S.user.phone,routeId:rid,train:trainNo,status:'BOOKED'};
+  S.tickets.push(t);
+  const confirmed=confirmIfReady(rid);
+  save();
+  return {t,confirmed};
+}
+function cutoff(){
+  let cancelled=0;
+  ROUTES.forEach(r=>{
+    if(S.trips[r.id]==='OPEN' && count(r.id)<MIN){
+      S.trips[r.id]='CANCELLED'; cancelled++;
+      notifyRoute(r.id,`The bus to ${r.name} is unavailable because fewer than ${MIN} tickets were sold. Your fare is refunded. Please choose another way to travel.`);
+      S.tickets.forEach(t=>{ if(t.routeId===r.id && t.status==='BOOKED') t.status='REFUNDED'; });
+    }
+  });
+  save(); return cancelled;
+}
+function addDemo(rid,n){
+  if(S.trips[rid]==='CANCELLED') return 0;
+  let added=0;
+  for(let i=0;i<n && count(rid)<CAP;i++){
+    S.tickets.push({code:newCode(),name:NAMES[Math.floor(Math.random()*NAMES.length)],phone:'',routeId:rid,train:TRAINS[Math.floor(Math.random()*TRAINS.length)].no,status:'BOOKED'});
+    added++;
+  }
+  const confirmed=confirmIfReady(rid);
+  save(); return {added,confirmed};
+}
+function validate(raw){
+  const code=raw.trim().toUpperCase().replace(/^RB(?!-)/,'RB-');
+  const t=S.tickets.find(x=>x.code===code);
+  if(!t) return {kind:'bad',title:'Invalid',text:'No ticket has this code. Ask the passenger to check it.'};
+  const r=route(t.routeId);
+  if(t.status==='USED') return {kind:'warn',title:'Already used',text:`${t.code} was already scanned. Do not let a second person board with it.`};
+  if(t.status==='REFUNDED') return {kind:'bad',title:'Refunded',text:`The bus to ${r.name} was cancelled and this ticket was refunded.`};
+  if(S.trips[t.routeId]!=='CONFIRMED') return {kind:'warn',title:'Bus not confirmed',text:`${r.name} has ${count(t.routeId)} of ${MIN} tickets. Do not board yet.`};
+  t.status='USED'; save();
+  return {kind:'ok',title:'Valid',text:`${t.name} to ${r.name}, train ${t.train}. Let them board.`};
+}
+
+function toast(msg){
+  const el=$('toast'); el.textContent=msg; el.classList.add('show');
+  clearTimeout(toast.t); toast.t=setTimeout(()=>el.classList.remove('show'),2600);
+}
+function pillFor(rid){
+  const s=S.trips[rid], n=count(rid);
+  if(s==='CONFIRMED') return '<span class="pill ok">Bus confirmed</span>';
+  if(s==='CANCELLED') return '<span class="pill bad">Cancelled</span>';
+  return `<span class="pill open">${MIN-n} more needed</span>`;
+}
+
+/* ---------- Passenger ---------- */
+function renderPassenger(){
+  const reg=!!S.user;
+  $('register').hidden=reg; $('booking').hidden=!reg;
+  if(!reg) return;
+  $('who').textContent=S.user.name;
+  const cur=$('train').value;
+  $('train').innerHTML=TRAINS.map(t=>`<option value="${t.no}">${t.no} · ${t.name} · arrives ${t.arr}</option>`).join('');
+  if(cur) $('train').value=cur;
+  renderRoutes(); renderTickets(); renderInbox();
+}
+function renderRoutes(){
+  $('routes').innerHTML=ROUTES.map(r=>{
+    const n=count(r.id), st=S.trips[r.id], pct=Math.min(n,MIN)/MIN*100;
+    const cls=st==='CONFIRMED'?'full':st==='CANCELLED'?'cut':'';
+    const meta=st==='CONFIRMED'?`${Math.max(CAP-n,0)} seats left`:st==='CANCELLED'?'Not running today':`${n} of ${MIN} tickets`;
+    return `<li><button class="route ${st==='CANCELLED'?'dead':''}" data-id="${r.id}" aria-pressed="${sel===r.id}" ${st==='CANCELLED'?'disabled':''}>
+      <div class="rtop"><span class="rname">${esc(r.name)}</span><span class="fare">${rupee(r.fare)}</span></div>
+      <div class="bar" aria-hidden="true"><i class="${cls}" style="width:${pct}%"></i></div>
+      <div class="rmeta"><span>${meta}</span>${pillFor(r.id)}</div></button></li>`;
+  }).join('');
+  const r=sel&&route(sel);
+  const full=r&&S.trips[sel]==='CONFIRMED'&&count(sel)>=CAP;
+  $('choice').innerHTML=r?`<b>${esc(r.name)}</b> · ${rupee(r.fare)} per seat`:'Pick a route to continue.';
+  $('pay').textContent=r?`Pay ${rupee(r.fare)}`:'Pay';
+  $('pay').disabled=!r||full||S.trips[sel]==='CANCELLED';
+}
+function renderTickets(){
+  const mine=S.tickets.filter(t=>t.phone===S.user.phone).reverse();
+  $('tickets').innerHTML=mine.length?mine.map(t=>{
+    const r=route(t.routeId), tr=train(t.train), st=S.trips[t.routeId];
+    let pill;
+    if(t.status==='USED') pill='<span class="pill used">Used</span>';
+    else if(t.status==='REFUNDED') pill='<span class="pill bad">Refunded</span>';
+    else if(st==='CONFIRMED') pill='<span class="pill ok">Bus confirmed</span>';
+    else pill=`<span class="pill open">${count(t.routeId)} of ${MIN}</span>`;
+    return `<li class="ticket ${t.status==='REFUNDED'?'dim':''}">
+      <div class="main"><div class="tdest">Station → ${esc(r.name)}</div>
+      <div class="tmeta">${esc(t.name)} · Train ${t.train}${tr?' '+esc(tr.name):''}</div>
+      <div class="tmeta">${rupee(r.fare)} · one seat</div></div>
+      <div class="stub"><span class="code">${t.code}</span>${pill}</div></li>`;
+  }).join(''):'<li class="empty">No tickets yet. Pick a route and pay to get your code.</li>';
+}
+function renderInbox(){
+  const m=S.msgs.filter(x=>x.phone===S.user.phone).reverse();
+  $('inbox').innerHTML=m.length?m.map(x=>`<li>${esc(x.text)}<time>${new Date(x.at).toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'})}</time></li>`).join(''):'<li class="empty">Confirmation and cancellation messages appear here.</li>';
+}
+
+/* ---------- Conductor ---------- */
+function renderConductor(){
+  const sample=S.tickets.filter(t=>t.status==='BOOKED'&&S.trips[t.routeId]==='CONFIRMED').slice(0,2).map(t=>t.code);
+  const waiting=S.tickets.find(t=>t.status==='BOOKED'&&S.trips[t.routeId]==='OPEN');
+  $('hint').innerHTML=`Demo codes: ${sample.map(c=>`<code>${c}</code>`).join('')||'none confirmed yet'}${waiting?` · Not yet confirmed: <code>${waiting.code}</code>`:''}`;
+  const rows=ROUTES.filter(r=>S.trips[r.id]==='CONFIRMED').map(r=>{
+    const all=S.tickets.filter(t=>t.routeId===r.id&&t.status!=='REFUNDED');
+    const on=all.filter(t=>t.status==='USED').length;
+    return `<tr><td><b>${esc(r.name)}</b></td><td class="num">${on} of ${all.length} boarded</td></tr>`;
+  });
+  $('manifest').innerHTML=rows.length?`<table style="min-width:0"><tbody>${rows.join('')}</tbody></table>`:'<div class="empty" style="border:0">No bus is confirmed yet.</div>';
+}
+
+/* ---------- Admin ---------- */
+function renderAdmin(){
+  const sold=S.tickets.filter(t=>t.status!=='REFUNDED').length;
+  const conf=ROUTES.filter(r=>S.trips[r.id]==='CONFIRMED').length;
+  const wait=ROUTES.filter(r=>S.trips[r.id]==='OPEN').length;
+  const rev=S.tickets.filter(t=>t.status!=='REFUNDED').reduce((a,t)=>a+route(t.routeId).fare,0);
+  $('tiles').innerHTML=[[sold,'Tickets sold'],[conf,'Buses confirmed'],[wait,'Routes waiting'],[rupee(rev),'Fares collected']].map(([v,l])=>`<div class="tile"><b>${v}</b><span>${l}</span></div>`).join('');
+  $('adminrows').innerHTML=ROUTES.map(r=>{
+    const n=count(r.id), st=S.trips[r.id], pct=Math.min(n,MIN)/MIN*100;
+    const cls=st==='CONFIRMED'?'full':st==='CANCELLED'?'cut':'';
+    return `<tr><td><b>${esc(r.name)}</b></td><td class="num">${rupee(r.fare)}</td>
+      <td><div class="bar"><i class="${cls}" style="width:${pct}%"></i></div><span class="num">${n} / ${MIN}</span></td>
+      <td>${pillFor(r.id)}</td><td class="num">${rupee(n*r.fare)}</td>
+      <td><button class="btn ghost small" data-add="${r.id}" ${st==='CANCELLED'?'disabled':''}>+5 bookings</button></td></tr>`;
+  }).join('');
+}
+
+/* ---------- Wiring ---------- */
+function show(v){
+  view=['passenger','conductor','admin'].includes(v)?v:'passenger';
+  ['passenger','conductor','admin'].forEach(x=>{ $('v-'+x).hidden=x!==view; });
+  document.querySelectorAll('nav button').forEach(b=>b.setAttribute('aria-current',b.dataset.view===view?'page':'false'));
+  if(view==='passenger') renderPassenger();
+  if(view==='conductor') renderConductor();
+  if(view==='admin') renderAdmin();
+}
+document.querySelectorAll('nav button').forEach(b=>b.addEventListener('click',()=>{ location.hash=b.dataset.view; }));
+window.addEventListener('hashchange',()=>show(location.hash.slice(1)));
+
+$('regform').addEventListener('submit',e=>{
+  e.preventDefault();
+  const name=$('rname').value.trim(), phone=$('rphone').value.trim();
+  if(!name||!/^[0-9]{10}$/.test(phone)){ toast('Enter your name and a 10-digit number.'); return; }
+  S.user={name,phone}; save(); renderPassenger(); toast('Registered. Pick a route.');
+});
+$('signout').addEventListener('click',()=>{ S.user=null; sel=null; save(); $('regform').reset(); renderPassenger(); });
+$('routes').addEventListener('click',e=>{
+  const b=e.target.closest('.route'); if(!b||b.disabled) return;
+  sel=b.dataset.id; renderRoutes();
+});
+$('pay').addEventListener('click',()=>{
+  if(!sel) return;
+  const {t,confirmed}=book(sel,$('train').value);
+  toast(confirmed?`Ticket ${t.code} booked. Your bus is confirmed.`:`Ticket ${t.code} booked. Waiting for ${MIN} tickets.`);
+  renderRoutes(); renderTickets(); renderInbox();
+});
+$('scanform').addEventListener('submit',e=>{
+  e.preventDefault();
+  const v=$('codein').value; if(!v.trim()) return;
+  const r=validate(v);
+  $('result').innerHTML=`<div class="result ${r.kind}"><h3>${r.title}</h3><p>${esc(r.text)}</p></div>`;
+  $('codein').select(); renderConductor();
+});
+$('adminrows').addEventListener('click',e=>{
+  const b=e.target.closest('[data-add]'); if(!b) return;
+  const res=addDemo(b.dataset.add,5);
+  renderAdmin();
+  toast(res.confirmed?`${route(b.dataset.add).name} reached ${MIN}. Bus confirmed.`:'Added 5 demo bookings.');
+});
+$('cutoff').addEventListener('click',()=>{
+  const n=cutoff(); renderAdmin();
+  toast(n?`Cutoff done. ${n} route${n>1?'s':''} cancelled and refunded.`:'Cutoff done. Nothing to cancel.');
+});
+$('reset').addEventListener('click',()=>{
+  const keep=S.user; seed(); S.user=keep; sel=null; save(); show(view); toast('Demo data reset.');
+});
+
+load();
+show(location.hash.slice(1));
+</script>
+
+</body></html>
